@@ -11,9 +11,14 @@
 #include <stdbool.h>
 #include "lib_usart.h"
 
+/* RX call back function  */
+void blinkOnRecieve(void){
+	PORTC ^= 0xff;
+}
 
 
 int main(void){
+	_delay_ms(500);		//cold start delay
 	
 	/* initialize the serial block */
 	struct usart_config_t config;
@@ -23,25 +28,32 @@ int main(void){
 	config.dFrameSize = USART_DATA_FRAME_8x;
 	config.parityMode = USART_PARITY_DISABLE;
 	config.stopBits = USART_STOPBITS_1x;
-	config.rxEnable = true;
-	config.txEnable = true;
+	config.txBuffer_size = 80;
+	config.rxCallback = blinkOnRecieve;			//set the callback function
 	if(lib_usart_init(&config)){				//initialize the serial port
 		while(1);
 	}
 	
-	char str[] = "hello Atmega 328p!\n";
-	char input;
-	
-	lib_uart_write_string(str);
+	char str1[] = "hello Atmega 328p!";
+	int counter  = 0;
 	
 	while (1) {
-		//lib_uart_write_string(str);
-		//lib_uart_write_char((char)10);
-		//lib_uart_write_char((char)13);
-		//_delay_ms(1000);
-		if( lib_usart_read_char(&input) == 0){
-			lib_uart_write_char(input+1);		
+		
+		/* uncomment for read test */
+		while( lib_usart_available() ){
+			lib_usart_write_byte(lib_usart_read()+1);
 		}
+		
+		/* */
+		if(++counter == 10){
+			lib_usart_write((uint8_t*)str1, strlen(str1));
+			lib_usart_write_byte(10);
+			lib_usart_write_byte(13);
+			counter = 0;
+			_delay_ms(900);
+		}
+		
+		_delay_ms(100);
     }
 	
 	return 0;
